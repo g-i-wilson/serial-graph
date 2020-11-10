@@ -13,6 +13,12 @@ public class SerialGraphController {
     }
     return d;
   }
+  
+  
+  public static void shiftLines( GraphModel g, double x, double y, int maxLines ) {
+  	g.plotPoint( x, y );
+  	if (g.getLines().size() > maxLines) g.getLines().remove(0);
+  }
 
 
   public static void main (String[] args) throws Exception {
@@ -21,27 +27,42 @@ public class SerialGraphController {
     GraphModelShapes phaseDerModel = new GraphModelShapes(50.0, 50.0, -50.0, -50.0, new Color( 0, 127, 255 ));
 
     // GraphView textView = new GraphViewText( phaseModel, Integer.valueOf(args[0]), Integer.valueOf(args[1]) );
-    GraphView phaseWindow = new GraphViewGUI( phaseModel, 1200, 300, new Color( 0, 255, 0 ) );
-    GraphView phaseDerWindow = new GraphViewGUI( phaseDerModel, 1200, 300, new Color( 255, 0, 255 ) );
+    GraphView phaseWindow = new GraphViewGUI( phaseModel, 1200, 400, new Color( 0, 255, 0 ), "Phase" );
+    GraphView phaseDerWindow = new GraphViewGUI( phaseDerModel, 1200, 400, new Color( 255, 0, 255 ), "Frequency" );
 
     double x=0;
-    double y1 = 0;
-    double y0 = 0;
-    double yDer = 0;
+    double phase_re = 0;
+    double phase_im = 0;
+    double freq_re = 0;
+    double freq_im = 0;
+    double adc_in = 0;
     while(true) {
       x++;
+      PacketRx p = new PacketRx( new int[]{ 1, 2 }, 13 );
       while(true) {
         int b = System.in.read();
         if (b != -1) {
-          y0 = y1;
-          y1 = byteToDouble(b);
-          break;
+        	p.add(b);
+        	if (p.valid()) {
+		        phase_re = (double) p.data16( 2, 3 );
+		        phase_im = (double) p.data16( 4, 5 );
+		        freq_re = (double) p.data16( 6, 7 );
+		        freq_im = (double) p.data16( 8, 9 );
+		        adc_in = (double) p.data16( 10, 11 );
+		        break;
+		      }
         }
       }
-      yDer = y1-y0;
-      if (yDer > 50 || yDer < -50) yDer = y1;
-      phaseModel.plotPoint( x*10, y1*20 );
-      phaseDerModel.plotPoint( x*10, yDer*20 );
+      System.out.println("phase_re: "+phase_re+", phase_im: "+phase_im+", freq_re: "+freq_re+", freq_im: "+freq_im+", adc_in: "+adc_in);
+      if (x > 300) {
+      	phaseModel.clear();
+      	phaseDerModel.clear();
+      	x = 0;
+      }
+      phaseModel.plotPoint( x, Math.atan2(phase_re, phase_im)*10 );
+      phaseDerModel.plotPoint( x, Math.atan2(freq_re, freq_im)*10 );
+      //shiftLines( phaseModel, x, Math.atan2(phase_re, phase_im)*10, 50 );
+      //shiftLines( phaseDerModel, x, Math.atan2(freq_re, freq_im)*10, 50 );
       // textView.refresh();
       phaseWindow.refresh();
       phaseDerWindow.refresh();
