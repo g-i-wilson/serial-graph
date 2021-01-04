@@ -82,6 +82,10 @@ public class Packet {
     }
     return binStr;
   }
+  
+  public int data8 (int theByte) {
+  	return packet.get(theByte).intValue();
+  }
 
 	// Combine the 8bit values from two ints into equivalent 16bit value int
   public int data16 (int high, int low) {
@@ -97,6 +101,15 @@ public class Packet {
 	// Access the whole packet
   public List<Integer> packet () {
     return packet;
+  }
+  
+  // Access byte array of packet
+  public byte[] bytes () {
+  	byte[] byteArray = new byte[packet.size()];
+  	for (int i=0; i<packet.size(); i++) {
+  		byteArray[i] = (byte) packet.get(i).intValue();
+  	}
+  	return byteArray;
   }
   
   // Access the LocalDateTime object
