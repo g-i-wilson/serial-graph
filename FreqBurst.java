@@ -6,7 +6,8 @@ public class FreqBurst {
 
 
 	private Packet txData;
-	private SortedMap<Integer,SortedMap<Integer,Packet>> rxData;
+	private SortedMap<Integer,SortedMap<Integer,Packet>> rxRawData;
+	private SortedMap<Integer,SortedMap<Integer,Map<String,Integer>>> rxData;
 
   public FreqBurst (
   	InputStream in, 
@@ -17,11 +18,12 @@ public class FreqBurst {
   	int preSamples, 
   	int stepSamples, 
   	int postSamples
-  ) throws IOException {
+  ) throws Exception {
 
 		rxData = new TreeMap<>();		
+		rxRawData = new TreeMap<>();		
 		
-		int totalSamples = (cycles+1) * (preSamples + (stepEnd-stepStart)*stepSamples + postSamples);
+		int totalSamples = (cycles+1) * (preSamples + (stepEnd-stepStart+1)*stepSamples + postSamples);
 
 		txData = new Packet( new int[]{ 't','x' }, // 0x74, 0x78
 			new int[]{ 
@@ -36,27 +38,33 @@ public class FreqBurst {
 			}
 		);
 		
-		out.write('\n'); // in case the output interface requires a return; may be optional
 		for (Integer val : txData.packet()) {
 			out.write(val);
 		}
 		out.write('\n'); // in case the output interface requires a return; may be optional
 		
+		//out.println("total:"+totalSamples);
 		for (int i=0; i<totalSamples; i++) {
 		  Packet rxPacket = new Packet( new int[]{ 'r','x' }, 8 ); // 0x72, 0x78
 		  while(true) {
 		    int b = in.read();
-		    out.write(b);
+		    //out.write(b);
 		    if (b != -1) {
 		    	rxPacket.add(b);
 		    	//out.write(b);
 		    	if (rxPacket.valid()) {
-		    		System.out.println("!"+i);
-		    		int cycle = rxPacket.data8(5);
-		    		int sample = rxPacket.data16(6, 7);
+		    		//System.out.println("valid!"+i);
+		    		int cycle = rxPacket.data8(7);
+		    		int sample = rxPacket.data16(8, 9);
 		    		if (! rxData.containsKey(cycle))
-		    			rxData.put(cycle, new TreeMap<Integer,Packet>());
-	    			rxData.get(cycle).put(sample, rxPacket);
+		    			rxData.put(cycle, new TreeMap<Integer,Map<String,Integer>>());
+		    			rxRawData.put(cycle, new TreeMap<Integer,Packet>());
+		    		if (! rxData.get(cycle).containsKey(sample))
+		    			rxData.get(cycle).put(sample, new LinkedHashMap<String,Integer>());
+	    			rxData.get(cycle).get(sample).put("I",rxPacket.data16(2,3));
+	    			rxData.get(cycle).get(sample).put("Q",rxPacket.data16(4,5));
+	    			rxData.get(cycle).get(sample).put("RFDIV",rxPacket.data8(6));
+	    			rxRawData.get(cycle).put(sample, rxPacket);
 		      	break;
 				  }
 				}
@@ -69,10 +77,19 @@ public class FreqBurst {
   	return txData;
   }
   
-  public SortedMap<Integer,SortedMap<Integer,Packet>> rxData () {
+  public SortedMap<Integer,SortedMap<Integer,Map<String,Integer>>> rxData () {
   	return rxData;
   }
   
+  public SortedMap<Integer,SortedMap<Integer,Packet>> rxRawData () {
+  	return rxRawData;
+  }
+  
+  public String toString () {
+  	return rxData.toString();
+  }
+  
+  // main method for testing
   public static void main (String[] args) throws Exception {
   	InputStream in = new ByteArrayInputStream(
   		new byte[]{
@@ -84,11 +101,6 @@ public class FreqBurst {
   			'r','x',0x10,0x00,0x10,0x00,0x01,0x00,0x00,0x05,(byte)0x10
   		}
   	);
-  	//for (int i=0; i<100; i++) {
-  	//	int b = in.read();
-  	//	if (b != -1)
-  	//		System.out.write( in.read() );
-  	//}
 		FreqBurst aBurst = new FreqBurst(
 			in,
 			System.out,
@@ -99,6 +111,9 @@ public class FreqBurst {
 			1, // step samples
 			1 // post samples
 		);
+		// keep thread alive so the piped output isn't broken at exit...
+		//while(true) Thread.sleep(1);
+		System.out.println( aBurst );
 	}
 		  
 }
