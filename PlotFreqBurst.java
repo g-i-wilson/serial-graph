@@ -1,5 +1,6 @@
 import graphtoolkit.*;
 import java.util.*;
+//import java.io.*;
 import java.awt.Color;
 
 public class PlotFreqBurst {
@@ -12,51 +13,65 @@ public class PlotFreqBurst {
     GraphView iWindow = new GraphViewGUI( iModel, 1200, 400, new Color( 0, 255, 0 ), "Phase" );
     GraphView qWindow = new GraphViewGUI( qModel, 1200, 400, new Color( 255, 0, 255 ), "Frequency" );
 
-		FreqBurst aBurst = new FreqBurst(
-			4, // ramp start
-			7, // ramp end
+		while(true) {
+		
+//			InputStream in = new ByteArrayInputStream(
+//				new byte[]{
+//					'r','x',0x00,(byte)0x80,0x00,(byte)0x80,0x01,0x00,0x00,0x00,(byte)0xeb,
+//					'r','x',0x01,0x00,0x01,0x00,0x01,0x00,0x00,0x01,(byte)0xee,
+//					'r','x',0x02,0x00,0x02,0x00,0x01,0x00,0x00,0x02,(byte)0xf1,
+//					'r','x',0x04,0x00,0x04,0x00,0x01,0x00,0x00,0x03,(byte)0xf6,
+//					'r','x',0x08,0x00,0x08,0x00,0x01,0x00,0x00,0x04,(byte)0xff,
+//					'r','x',0x10,0x00,0x10,0x00,0x01,0x00,0x00,0x05,(byte)0x10
+//				}
+//			);
+
+			FreqBurst aBurst = new FreqBurst(
+				System.in,
+				System.out,
+				4, // ramp start
+				7, // ramp end
+				0, // cycles-1
+				10, // pre samples
+				10, // step samples
+				10 // post samples
+			);
+
+		  double x=0;
+		  double iVal = 0;
+		  double qVal = 0;
+		  double divVal = 0;
+		  
+		  SortedMap<Integer,SortedMap<Integer,Map<String,Integer>>> rx = aBurst.rxData();
+		  
+		  for (SortedMap<Integer,Map<String,Integer>> cycle : rx.values()) {
+		  	for (Map<String,Integer> sample : cycle.values()) {
+					x++;
+
+				  iVal = (double) sample.get("I").intValue();
+				  qVal = (double) sample.get("Q").intValue();
+				  divVal = (double) sample.get("RFDIV").intValue();
+
+				  //iModel.plotPoint( x, Math.atan2(phase_re, phase_im)*10 );
+				  //qModel.plotPoint( x, Math.atan2(freq_re, freq_im)*10 );
+				  iModel.plotPoint( x*100, iVal );
+				  qModel.plotPoint( x*100, qVal );
+				  
+				  System.out.println("I: "+iVal+", Q: "+qVal+", RFDIV: "+divVal);
+
+				  iWindow.refresh();
+				  qWindow.refresh();
+				  
+				  Thread.sleep(100);
+				  
+				}
+			}
 			
-		int stepSamples = 10
-		int stepStart = 4;
-		int stepEnd	= 7;
-		int postSamples = 20;
-    double x=0;
-    double iVal = 0;
-    double qVal = 0;
-    while(true) {
-      x++;
-      Packet tx = new Packet( new int[]{ 't','x' }, 8 ); // 0x74, 0x78
-      Packet rx = new Packet( new int[]{ 'r','x' }, new int[]{ ); // 0x72, 0x78
-      while(true) {
-        int b = System.in.read();
-        if (b != -1) {
-        	p.add(b);
-        	if (p.valid()) {
-		        iVal = (double) p.data16( 0, 1 );
-		        qVal = (double) p.data16( 2, 3 );
-		        freq_re = (double) p.data16( 6, 7 );
-		        freq_im = (double) p.data16( 8, 9 );
-		        adc_in = (double) p.data16( 10, 11 );
-		        break;
-		      }
-        }
-      }
-      System.out.println("phase_re: "+phase_re+", phase_im: "+phase_im+", freq_re: "+freq_re+", freq_im: "+freq_im+", adc_in: "+adc_in);
-      if (x > 300) {
-      	iModel.clear();
-      	qModel.clear();
-      	x = 0;
-      }
-      iModel.plotPoint( x, Math.atan2(phase_re, phase_im)*10 );
-      qModel.plotPoint( x, Math.atan2(freq_re, freq_im)*10 );
-      //shiftLines( iModel, x, Math.atan2(phase_re, phase_im)*10, 50 );
-      //shiftLines( qModel, x, Math.atan2(freq_re, freq_im)*10, 50 );
-      // textView.refresh();
-      iWindow.refresh();
-      qWindow.refresh();
-      Thread.sleep(50);
-    }
+			Thread.sleep(2000);
+	  	iModel.clear();
+	  	qModel.clear();
 
-
+		}
   }
+  
 }
