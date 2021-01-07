@@ -25,6 +25,8 @@ public class PlotFreqBurst {
 //					'r','x',0x10,0x00,0x10,0x00,0x01,0x00,0x00,0x05,(byte)0x10
 //				}
 //			);
+			
+			Thread.sleep(2000);
 
 			FreqBurst aBurst = new FreqBurst(
 				System.in,
