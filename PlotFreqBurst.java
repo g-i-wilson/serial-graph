@@ -1,6 +1,7 @@
 import graphtoolkit.*;
 import java.util.*;
-//import java.io.*;
+import java.io.*;
+import java.net.Socket;
 import java.awt.Color;
 
 public class PlotFreqBurst {
@@ -12,6 +13,8 @@ public class PlotFreqBurst {
 
     GraphView iWindow = new GraphViewGUI( iModel, 1200, 400, new Color( 0, 255, 0 ), "Phase" );
     GraphView qWindow = new GraphViewGUI( qModel, 1200, 400, new Color( 255, 0, 255 ), "Frequency" );
+
+		Socket socket = new Socket( "localhost", 9090 );
 
 		while(true) {
 		
@@ -29,8 +32,8 @@ public class PlotFreqBurst {
 			Thread.sleep(2000);
 
 			FreqBurst aBurst = new FreqBurst(
-				System.in,
-				System.out,
+				socket.getInputStream(),
+				new PrintStream(socket.getOutputStream()),
 				4, // ramp start
 				7, // ramp end
 				0, // cycles-1

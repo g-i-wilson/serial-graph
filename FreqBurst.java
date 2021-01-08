@@ -38,7 +38,9 @@ public class FreqBurst {
 			}
 		);
 		
+		//System.out.println(txData);
 		for (Integer val : txData.packet()) {
+			//System.out.println(val);
 			out.write(val);
 		}
 		out.write('\n'); // in case the output interface requires a return; may be optional
