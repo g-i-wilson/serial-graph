@@ -23,7 +23,7 @@ public class FreqBurst {
 		rxData = new TreeMap<>();		
 		rxRawData = new TreeMap<>();		
 		
-		int totalSamples = (cycles+1) * (preSamples + (stepEnd-stepStart+1)*stepSamples + postSamples);
+		int totalSamples = (cycles+1) * (preSamples + (stepEnd-stepStart)*stepSamples + postSamples);
 
 		txData = new Packet( new int[]{ 't','x' }, // 0x74, 0x78
 			new int[]{ 
@@ -45,7 +45,7 @@ public class FreqBurst {
 		}
 		out.write('\n'); // in case the output interface requires a return; may be optional
 		
-		//out.println("total:"+totalSamples);
+		//System.out.println("Expected total samples: "+totalSamples);
 		for (int i=0; i<totalSamples; i++) {
 		  Packet rxPacket = new Packet( new int[]{ 'r','x' }, 8 ); // 0x72, 0x78
 		  while(true) {
@@ -55,7 +55,7 @@ public class FreqBurst {
 		    	rxPacket.add(b);
 		    	//out.write(b);
 		    	if (rxPacket.valid()) {
-		    		//System.out.println("valid!"+i);
+		    		//System.out.println("**** valid sample: "+i+" ****");
 		    		int cycle = rxPacket.data8(7);
 		    		int sample = rxPacket.data16(8, 9);
 		    		if (! rxData.containsKey(cycle))
