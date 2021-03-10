@@ -11,9 +11,9 @@ public class ServePulses {
 
     PulseData c = new PulseData();
 
-    Server displayData = new Server( c, 9000 );
-    Server receiveData = new Server( c, 9001 );
-    //Server p3 = new Server( c, Integer.valueOf(args[2]) );
+    Server receive 					= new Server( c, 9000 );
+    Server displayBar		 		= new Server( c, 9001 );
+    Server displaySurface 	= new Server( c, 9002 );
 
 
     while(true) {
@@ -31,7 +31,7 @@ class PulseData extends ServerState {
   private List<List<Integer>> pulses;
   private File dataFile;
   
-  public PulseData () {
+  public PulseData () throws Exception {
   	this(
 			LocalDateTime.now().format(
 		  	DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmmss")
@@ -39,9 +39,10 @@ class PulseData extends ServerState {
     );
   }
 
-  public PulseData ( String fileName ) {
+  public PulseData ( String fileName ) throws Exception {
   	dataFile = new File( fileName );
   	pulses = new ArrayList<>();
+  	Files.write(dataFile.toPath(), "".getBytes());
     System.out.println( "PulseData initialized!" );
   }
   
@@ -65,31 +66,86 @@ class PulseData extends ServerState {
   }
 
   public void createResponse ( Request req, Response res ) {
-  	if( req.socket().getLocalPort() == 9000 ) {
-  		//System.out.println( req.data() );
-  		addData( req.data() );
-  		res.setBody( "<h1>Thanks!</h1><br><br>"+pulses );
-  	} else {
-//  		String body = "<h1>Data:</h1><br>"+pulses;
-  		String body =
+  	String plotlyStart =
   		"<!DOCTYPE html>\n" +
 			"<head>\n" +
-			"<meta charset=\"utf-8\" />\n" +
+//			"<meta charset=\"utf-8\" http-equiv=\"refresh\" content=\"1\" />\n" +
+//			"<style type=\"text/css\">\n" +
+//			"* {padding: 0;margin: 0;}\n" +
+//			"html, body {height: 100%;}\n" +
+//			"#container {min-height: 100%;background-color: #DDD;border-left: 2px solid #666;border-right: 2px solid #666;width: 676px;margin: 0 auto;}\n" +
+//			"* html #container {height: 100%;}\n" +
+//			"</style>\n" +
 			"</head>\n" +
 			"<body>\n" +
 			"<div id='plot_div'></div>\n" +
 			"<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>\n" +
 			"<script>\n" +
-			"Plotly.newPlot( 'plot_div', [ \n";
-  		if (pulses.size() > 0) {
-				for (List<Integer> pulse : pulses) {
-					body += "{type:\"bar\", opacity:\"0.2\", color:\"blue\", y:"+pulse+"},\n";
-				}
-			}
-			body += " ], {\"barmode\":\"overlay\"} );\n" +
+			"var layout = {\n" +
+    	" showlegend: false,\n" +
+			"	autosize: false,\n" +
+			"	width: 1200,\n" +
+			"	height: 720,\n" +
+//			"	yaxis: {\n" +
+//			"		title: 'Y-axis Title',\n" +
+//			"		automargin: true,\n" +
+//			"		titlefont: { size:30 },\n" +
+//			"	},\n" +
+//			"	paper_bgcolor: '#7f7f7f',\n" +
+//			"	plot_bgcolor: '#c7c7c7',\n" +
+			" barmode: 'overlay'\n" +
+			"};\n" ;
+			
+		String plotlyEnd = 
 			"</script>\n" +
 			"</body>\n" +
 			"</html>\n";
+			
+		String body = "";
+
+  	if ( req.socket().getLocalPort() == 9000 ) {
+  		//System.out.println( req.data() );
+  		addData( req.data() );
+  		res.setBody( "<h1>Thanks!</h1><br><br>"+pulses );
+  		
+  	} else if ( req.socket().getLocalPort() == 9001 ) {
+  		System.out.println("9001");
+			body +=
+				plotlyStart +
+				"Plotly.newPlot( 'plot_div', [ \n";
+  		if (pulses.size() > 0) {
+				for (List<Integer> pulse : pulses) {
+					body += "{type:'bar', marker:{opacity:'0.2', color:'#0000ff'}, y:"+pulse+"},\n";
+				}
+			}
+			body +=
+				//" ], {\"barmode\":\"overlay\"} );\n" +
+				" ], layout );\n" +
+				plotlyEnd;
+  		res.setBody( body );
+			
+  	} else if ( req.socket().getLocalPort() == 9002 ) {
+  		System.out.println("9002");
+			body +=
+				plotlyStart +
+				"Plotly.newPlot( 'plot_div', [ \n";
+  		if (pulses.size() > 0) {
+				int x = 0;
+				for (List<Integer> pulse : pulses) {
+					int y = 0;
+					String xStr = "";
+					String yStr = "";
+  				for (int i=0; i<pulse.size(); i++) {
+  					xStr += x+",";
+  					yStr += (y++)+",";
+  				}
+					x++;
+					body += "{type:\"scatter3d\", x:["+xStr+"], y:["+yStr+"], z:"+pulse+"},\n";
+				}
+			}
+			body +=
+				" ], layout );\n" +
+				plotlyEnd;
   		res.setBody( body );
   	}
   }
